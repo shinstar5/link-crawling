@@ -51,6 +51,10 @@
 
 ## 🛠️ 使用方式
 
+⚠️ **注意：請手動修改 `src/get_creator_links.py` 中的 `driver_path`，指向你本機的 chromedriver 路徑。**
+建議使用與你本機 Google Chrome 相同版本的 driver，可於此查詢：https://chromedriver.chromium.org/downloads
+
+
 ### 1️⃣ 安裝環境依賴
 
 ```bash
@@ -74,8 +78,8 @@ python get_creator_links.py
     ...
   ],
   "instagram": [
-    ["葳老闆的品牌👗", "https://bit.ly/..."],
-    ["葳老闆的親筆簽名書✏️", "https://bit.ly/..."],
+    ["老闆的品牌", "https://bit.ly/..."],
+    ["老闆的親筆簽名書", "https://bit.ly/..."],
     ...
   ]
 }
@@ -86,10 +90,15 @@ python get_creator_links.py
   https://www.instagram.com/mayukichou/
 
 - 📍 link-in-bio 展開測試：  
-  https://www.instagram.com/yu_zhen610/  
+  https://www.instagram.com/joliechi/  
   https://www.instagram.com/haitaibear/
 
----
+## 📁 範例輸出（examples/）
+你可以在 `examples/` 資料夾中找到四位創作者的爬蟲結果 JSON：
+- `haitaibear.json`：展示 IG + linktree 拓展
+- `mayukichou.json`：展示 Youtube, IG modal 與短網址擷取
+- `joliechi.json`：展示 Youtube, IG modal + linktree 拓展
+- `mumumamagogo.json`：展示IG單一網址連結與團購網頁title爬取
 
 ## 📌 技術細節
 
@@ -98,6 +107,56 @@ python get_creator_links.py
 - 自動解碼 Instagram redirect：`https://l.instagram.com/?u=...` ➝ 解析真實 URL。
 - 自動處理短網址重導向：`requests.get(..., allow_redirects=True)`。
 - 支援 link-in-bio 平台（如 `linktr.ee`, `linkby.tw`, `bio.site`, `beacons.ai` 等）遞迴提取 `<a>` 與內容，將多連結整理成 `[title, url]` 格式，實現「創作者連結無痛轉移」。
+
+### 🧱 關於 Instagram 反爬蟲限制
+
+目前 Instagram 對未登入用戶的瀏覽做了嚴格限制，會在使用幾次後黑屏頁面錯誤強制登入。
+
+本專案的 IG 模組已嘗試以下繞過策略：
+- 透過重新整理繞過簡易(半滿)登入牆
+- 模擬正常使用者行為（等待、refresh、點擊關閉或空白處）
+- 擷取登入牆前的 modal 按鈕與 bio 短網址
+- 嘗試動態點擊「關閉圖示」與右下角區域
+- 若失敗仍能進行 等候手動登入完畢再執行 / fallback 擷取（如 linktr.ee 展開）
+
+**執行時會跳出提示請手動登入後再按 Enter**，否則會遭遇「登入牆」阻擋，無法載入頁面或抓取連結。
+(🔒 IG模組需按兩下enter進行畫面確認，如被強制登入，目前需「手動登入」帳號才能取得創作者的 bio 與連結 modal。)
+
+✅ 建議改用：
+- **Playwright（推薦）**：支援登入態模擬與穩定繞過登入牆
+- **Chrome Profile 載入**：指定已登入帳號之 `--user-data-dir`（需本機測試）
+
+
+### 🔍 技術更新紀錄
+
+| 日期 | 項目 | 說明 |
+|------|------|------|
+| 2025-04-16 | Instagram Modal link 支援展開 | 若 modal 中連結為 `linktr.ee` 等，將自動擴展並加入回傳清單 |
+| 2025-04-16 | YouTube redirect 支援解析 | 自動從 `youtube.com/redirect?q=xxx` 中解析出實際網址 |
+
+### 🔧 Lint / 維護建議
+
+- 請使用 `black` 進行格式化 (`pip install black`)
+- 執行 `black src/` 可保持乾淨一致的代碼格式
+- 未來可使用 `.env` 儲存 chromedriver 路徑與 base URL（可選）
+---
+
+### 🔮 未來解法規劃
+
+- ✅ 自動登入 Instagram：以帳密或 cookie 注入方式繞過未登入限制
+- ✅ 使用 [`Playwright`](https://playwright.dev/python/) 進行登入後爬蟲，可穩定處理登入狀態、瀏覽器上下文與封鎖機制
+- ✅ 將爬蟲轉為 API 微服務形式，供平台後台串接
+
+### 🔧 Next Steps
+- [ ] 將爬蟲主程式包裝成 RESTful API，支援 URL 查詢與結果回傳 JSON，方便整合到 Portaly 後台
+- [ ] 將 console `print` 改為 `logging` 系統，利於伺服器部署與偵錯
+- [ ] 實作 link result 去重機制，避免重複抓取（如 modal 展開與 bio link 重複）。 (優先度較低，使用者可主動刪除)
+- [ ] 嘗試改用 Playwright 以繞過 IG 登入牆（或自動登入）。
+- [ ] 增加單元測試與連結格式驗證。
+
+---
+
+📌 本功能已可展示爬蟲流程與資料結構設計，未來只需將登入流程補齊，即可作為完整的 onboarding 自動化模組串入 Portaly。
 
 ---
 
